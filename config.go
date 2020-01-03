@@ -12,7 +12,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/aam335/go-radius"
-	"github.com/jinzhu/configor"
+	"github.com/ilyakaznacheev/cleanenv"
 	"golang.org/x/time/rate"
 )
 
@@ -56,7 +56,7 @@ func ConfigLoad() (*Config, error) {
 	gen := flag.Bool("gen", false, "generate toml config")
 	config := flag.String("c", "config.toml", "config file name")
 	flag.Parse()
-	if err := configor.Load(&mainConfig, *config); err != nil {
+	if err := cleanenv.ReadConfig(*config,&mainConfig); err != nil {
 		return nil, err
 	}
 	if *gen {

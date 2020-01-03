@@ -38,19 +38,29 @@ func (ps *PubSub) Fire(topic string, pairs map[string]string) error {
 }
 
 // Req requests data from backend with context
+// context - timeout context
+// topic - "auth" etc..
+// key - key value, that identifies requester (uses for cache)
 func (ps *PubSub) Req(ctx context.Context, topic string, key string, pairs map[string]string) (ret map[string]string, err error) {
-	subsTo := ps.prefix + "subs." + topic + key
-	pubTo := ps.prefix + key
-	data, err := json.Marshal(pairs)
-	if err != nil {
-		return nil, err
+	pubTo := ps.prefix + "req." + topic
+	subsTo := ps.prefix + "rep." + topic + "." + key
+	var (
+		data []byte
+		sub  *nats.Subscription
+		msg  *nats.Msg
+	)
+	if data, err = json.Marshal(pairs); err != nil {
+		return
 	}
-	sub, _ := ps.ns.SubscribeSync(subsTo)
+	if sub, err = ps.ns.SubscribeSync(subsTo); err != nil {
+		return
+	}
 	nm := nats.Msg{Subject: pubTo, Reply: subsTo, Data: data}
-	ps.ns.PublishMsg(&nm)
-	msg, err := sub.NextMsgWithContext(ctx)
-	if err != nil {
-		return nil, err
+	if err = ps.ns.PublishMsg(&nm); err != nil {
+		return
+	}
+	if msg, err = sub.NextMsgWithContext(ctx); err != nil {
+		return
 	}
 	err = json.Unmarshal(msg.Data, &ret)
 	return
