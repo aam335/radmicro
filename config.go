@@ -16,6 +16,16 @@ import (
 	"golang.org/x/time/rate"
 )
 
+type duration struct {
+	time.Duration
+}
+
+func (d *duration) UnmarshalText(text []byte) error {
+	var err error
+	d.Duration, err = time.ParseDuration(string(text))
+	return err
+}
+
 // Config ...
 type Config struct {
 	Server struct {
@@ -26,6 +36,8 @@ type Config struct {
 		Secret           string   `env:"SECRET" `
 		ClientsSecrets   []string `env:"HOST_SECRETS" `
 		ServiceName      string   `env:"SERVICE_NAME" `
+		NatsURI          string   `env:"NATS_URI" `
+		MaxAuthDuration  duration `env:"MAX_AUTH_DURATION" default:"5s"`
 	} ``
 	RateLimit struct {
 		MaxPendingReq    int `env:"MAX_PENDING_REQ" `
@@ -50,13 +62,12 @@ func (c *Config) GetClientSecrets() map[string]string {
 }
 
 // ConfigLoad Load config from file and os.Env
-// for syntax and logic details look https://github.com/jinzhu/configor
 func ConfigLoad() (*Config, error) {
 	var mainConfig Config
 	gen := flag.Bool("gen", false, "generate toml config")
 	config := flag.String("c", "config.toml", "config file name")
 	flag.Parse()
-	if err := cleanenv.ReadConfig(*config,&mainConfig); err != nil {
+	if err := cleanenv.ReadConfig(*config, &mainConfig); err != nil {
 		return nil, err
 	}
 	if *gen {

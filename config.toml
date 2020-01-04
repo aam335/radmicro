@@ -3,13 +3,14 @@
   ReplicateReplies = false
   Secret = "TopSecret"
   ClientsSecrets = ["10.0.0.1:Secret1", "10.0.0.2:Secret2"]
-  ServiceName = ""
+  ServiceName = "inet"
+  NatsURI=""
+  MaxAuthDuration = "5s" # Time to wait reply from backend
 
 [RateLimit]
   MaxPendingReq = 0
   RequestPerSecond = 0
   Burst = 0
-
 
 ### key(s) concatenates into one string value for identify queryes 
 [[Key]]

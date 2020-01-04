@@ -7,25 +7,31 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// PubSub sends topics with attributes to backend
+// PubSub ...
+type PubSub interface {
+	Fire(topic string, pairs map[string]string) error
+	Req(ctx context.Context, topic string, key string, pairs map[string]string) (ret map[string]string, err error)
+}
+
+// pubsub sends topics with attributes to backend
 // and receives replies, if needed
-type PubSub struct {
+type pubsub struct {
 	ns     *nats.Conn
 	prefix string
 }
 
 // NewPubSub creates new PubSub
-func NewPubSub(prefix string, natsURI string) (*PubSub, error) {
+func NewPubSub(prefix string, natsURI string) (PubSub, error) {
 	ns, err := nats.Connect(natsURI)
 	if err != nil {
 		return nil, err
 	}
-	ps := PubSub{ns: ns, prefix: prefix + "."}
-	return &ps, nil
+	ps := pubsub{ns: ns, prefix: prefix + "."}
+	return ps, nil
 }
 
 // Fire Pubs json encoded pairs to backend
-func (ps *PubSub) Fire(topic string, pairs map[string]string) error {
+func (ps pubsub) Fire(topic string, pairs map[string]string) error {
 	data, err := json.Marshal(pairs)
 	if err != nil {
 		return err
@@ -41,7 +47,7 @@ func (ps *PubSub) Fire(topic string, pairs map[string]string) error {
 // context - timeout context
 // topic - "auth" etc..
 // key - key value, that identifies requester (uses for cache)
-func (ps *PubSub) Req(ctx context.Context, topic string, key string, pairs map[string]string) (ret map[string]string, err error) {
+func (ps pubsub) Req(ctx context.Context, topic string, key string, pairs map[string]string) (ret map[string]string, err error) {
 	pubTo := ps.prefix + "req." + topic
 	subsTo := ps.prefix + "rep." + topic + "." + key
 	var (
