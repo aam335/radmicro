@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	mock_pubsub "github.com/aam335/radmicro/mocks/pubsub"
-
 	"github.com/aam335/go-radius"
+	mock_pubsub "github.com/aam335/radmicro/mocks/pubsub"
 	mock_go_radius "github.com/aam335/radmicro/mocks/radius"
 	"github.com/golang/mock/gomock"
 )

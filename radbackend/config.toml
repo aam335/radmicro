@@ -1,0 +1,10 @@
+[Server]
+ServiceName = 'inet'
+MaxConnections = 5
+RestartInterval = '1s'
+[Sql]
+Driver = 'sqlite3'
+URI = 'file:./base.sq3'
+[Nats]
+URI=''
+QueueName = 'inet'
