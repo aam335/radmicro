@@ -2,9 +2,17 @@
 ServiceName = 'inet'
 MaxConnections = 5
 RestartInterval = '1s'
+
 [Sql]
 Driver = 'sqlite3'
 URI = 'file:./base.sq3'
+
 [Nats]
-URI=''
+URI = ''
 QueueName = 'inet'
+
+[Redis]
+URI = ''
+MaxIdle = 30
+MaxActive = 40
+LockTTL = '5s'

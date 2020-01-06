@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gomodule/redigo/redis"
+	"log"
 	"time"
 )
 
@@ -14,7 +15,7 @@ const (
 type Cache struct {
 	prefix  string
 	lockTTL int //seconds
-	pool    *redis.Pool
+	*redis.Pool
 }
 
 // Send PING command to Redis
@@ -33,23 +34,27 @@ func ping(c redis.Conn) error {
 
 // NewCache creates new cache object
 // keys in this cache has prefix
-func NewCache(redisAddr string, prefix string) (*Cache, error) {
-	ca := Cache{prefix: prefix, lockTTL: DefaultQueryLockTTL}
-	ca.pool = &redis.Pool{
-		MaxIdle:   80,
-		MaxActive: 1200,
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", redisAddr)
-			// if err != nil {
-			// 	panic(err.Error())
-			// }
-			return c, err
+func NewCache(redisAddr string, prefix string, lockTTL int, skipTest ...bool) (*Cache, error) {
+	ca := Cache{prefix: prefix,
+		lockTTL: lockTTL,
+		Pool: &redis.Pool{
+			MaxIdle:   30,
+			MaxActive: 40,
+			Dial: func() (redis.Conn, error) {
+				c, err := redis.Dial("tcp", redisAddr)
+				if err != nil {
+					log.Print("Redis pool:", err)
+				}
+				return c, err
+			},
 		},
 	}
-	conn := ca.pool.Get()
-	defer conn.Close()
-	if err := ping(conn); err != nil {
-		return nil, err
+	if !(len(skipTest) == 1 && skipTest[0]) {
+		conn := ca.Get()
+		defer conn.Close()
+		if err := ping(conn); err != nil {
+			return nil, err
+		}
 	}
 	return &ca, nil
 }
@@ -65,7 +70,7 @@ func (ca *Cache) GetCache(key string, getFromSlowSource func(key string) (int, [
 	// get prefix:key value
 	// got value? return
 	pfx := ca.prefix + ":" + key
-	c := ca.pool.Get()
+	c := ca.Get()
 	defer c.Close()
 
 	b, err := redis.Bytes(c.Do("GET", pfx))

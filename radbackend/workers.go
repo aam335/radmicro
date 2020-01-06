@@ -10,14 +10,14 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type workerType = func(db *sql.DB, nc *nats.Conn, workerID int, donechan chan struct{}) error
+type workerType = func(db *sql.DB, nc *nats.Conn, rc *Cache, workerID int, donechan chan struct{}) error
 
 func worker(db *sql.DB, nc *nats.Conn, workerID int) error {
 
 	return nil
 }
 
-func runWorkers(ctx context.Context, c *Config, w workerType) {
+func runWorkers(ctx context.Context, c *Config, rc *Cache, w workerType) {
 	l := rate.NewLimiter(rate.Every(c.Server.RestartInterval.Duration), c.Server.MaxConnections)
 	totalConn := 0
 	exitChan, doneChan := make(chan struct{}), make(chan struct{})
@@ -27,6 +27,7 @@ func runWorkers(ctx context.Context, c *Config, w workerType) {
 		close(doneChan)
 		wg.Wait()
 	}()
+
 	for {
 		if err := l.Wait(ctx); err != nil {
 			return
@@ -50,7 +51,6 @@ func runWorkers(ctx context.Context, c *Config, w workerType) {
 				exitChan <- struct{}{}
 			}()
 			var nc *nats.Conn
-			var rc *Cache
 			var db *sql.DB
 			if db, err = sql.Open(c.SQL.Driver, c.SQL.URI); err != nil {
 				return
@@ -60,12 +60,8 @@ func runWorkers(ctx context.Context, c *Config, w workerType) {
 				return
 			}
 			defer nc.Close()
-			if rc, err = NewCache(c.Redis.URI, c.Server.ServiceName); err != nil {
-				return
-			}
-			_ = rc
-			// defer rc.
-			if err = w(db, nc, workerid, doneChan); err != nil {
+
+			if err = w(db, nc, rc, workerid, doneChan); err != nil {
 				log.Printf("Error [#%v] %v", workerid, err)
 			}
 		}(workerid)

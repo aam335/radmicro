@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewCache(tt.args.redisAddr, tt.args.prefix)
+			got, err := NewCache(tt.args.redisAddr, tt.args.prefix, DefaultQueryLockTTL)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -54,7 +54,7 @@ func TestCache_GetCache(t *testing.T) {
 	}
 	defer s.Close()
 
-	ca, err := NewCache(s.Addr(), "test")
+	ca, err := NewCache(s.Addr(), "test", DefaultQueryLockTTL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestCache_GetCache(t *testing.T) {
 			ca := &Cache{
 				prefix:  tt.fields.prefix,
 				lockTTL: tt.fields.lockTTL,
-				pool:    ca.pool,
+				Pool:    ca.Pool,
 			}
 			got, err := ca.GetCache(tt.args.key, tt.args.getFromSlowSource)
 			if (err != nil) != tt.wantErr {
