@@ -3,10 +3,6 @@ ServiceName = 'inet'
 MaxConnections = 5
 RestartInterval = '1s'
 
-[Sql]
-Driver = 'sqlite3'
-URI = 'file:./base.sq3'
-
 [Nats]
 URI = ''
 QueueName = 'inet'
@@ -16,3 +12,34 @@ URI = ''
 MaxIdle = 30
 MaxActive = 40
 LockTTL = '5s'
+
+[Sql]
+Driver = 'sqlite3'
+URI = 'file:./base.sq3'
+[Sql.Query.Auth]
+Prepare = 'select attrname,attrval from users where name=:1'
+Arguments = ['User-Name']
+Cacheable = true
+
+[Sql.Query.Start]
+Prepare = 'insert into acc (name,sessionid,start) values (:1,:2,CURRENT_TIMESTAMP)'
+Arguments = [
+    'User-Name',
+    'Acct-Session-Id',
+]
+
+[Sql.Query.InterimUpdate]
+Prepare = 'update acc set (inb=:1,outb:2) where sessionid=:3'
+Arguments = [
+    'Acct-Input-Octets',
+    'Acct-Output-Octets',
+    'Acct-Session-Id',
+]
+
+[Sql.Query.Stop]
+Prepare = 'update acc set (inb=:1,outb=:2,stop=CURRENT_TIMESTAMP) where sessionid=:3'
+Arguments = [
+    'Acct-Input-Octets',
+    'Acct-Output-Octets',
+    'Acct-Session-Id',
+]

@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/alicebob/miniredis"
-	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,14 +32,14 @@ func Test_runWorkers(t *testing.T) {
 
 	count := 0
 	m := sync.Mutex{}
-	w := func(db *sql.DB, nc *nats.Conn, rc *Cache, workerID int, c chan struct{}) error {
+	w := func(c *Config, rc *Cache, workerID int, done <-chan struct{}) error {
 		m.Lock()
 		count++
 		m.Unlock()
-		<-c
+		<-done
 		return nil
 	}
-	ew := func(db *sql.DB, nc *nats.Conn, rc *Cache, workerID int, c chan struct{}) error {
+	ew := func(c *Config, rc *Cache, workerID int, done <-chan struct{}) error {
 		m.Lock()
 		count++
 		m.Unlock()
@@ -49,17 +47,53 @@ func Test_runWorkers(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	runWorkers(ctx, &c, rc, w)
+	c.runWorkers(ctx, rc, w)
 	cancel()
 	if count != 10 {
 		t.Error("Burst error")
 	}
 	count = 0
 	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
-	runWorkers(ctx, &c, rc, ew)
+	c.runWorkers(ctx, rc, ew)
 	cancel()
 	if count <= 10 || count >= (10+1000/50) {
 		t.Error("Rate error")
 	}
 
+}
+
+func TestConfig_prepareSQL(t *testing.T) {
+	sqlURI := "file::memory:?cache=shared"
+	sqlDriver := "sqlite3"
+	db := newDb("?cache=shared")
+	defer db.Close()
+
+	tests := []struct {
+		name    string
+		Query   map[string]Query
+		topic   string
+		db      bool
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+		{name: "nil db", Query: map[string]Query{"Auth": Query{Prepare: "select * from users", Cacheable: true}}, wantErr: true},
+		{name: "select w/o args", topic: "Auth", db: true, Query: map[string]Query{"Auth": Query{Prepare: "select count(*) from users", Cacheable: true}}, wantErr: false},
+		{name: "select w/args", topic: "Auth", db: true, Query: map[string]Query{"Auth": Query{Prepare: "select * from users where user=:1", Cacheable: false}}, wantErr: true},
+		{name: "select w/args, errored syntax", topic: "Auth", db: true, Query: map[string]Query{"Auth": Query{Prepare: "select * from users where user=:1 jhgjhgjh", Cacheable: false}}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{}
+			if tt.db {
+				c.SQL.Driver = sqlDriver
+				c.SQL.URI = sqlURI
+			}
+			c.SQL.Query = tt.Query
+			_, _, err := c.prepareSQL()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Config.prepareSQL() error = %v, wantErr %v", err, tt.wantErr)
+				//				return
+			}
+		})
+	}
 }
