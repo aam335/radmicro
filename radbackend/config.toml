@@ -12,6 +12,8 @@ URI = ''
 MaxIdle = 30
 MaxActive = 40
 LockTTL = '5s'
+TTLAttr = '_TTL'
+TTLDefault = '5m'
 
 [Sql]
 Driver = 'sqlite3'

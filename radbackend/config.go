@@ -19,10 +19,12 @@ type Config struct {
 		QueueName string `env:"QUEUE_NAME" env-description:"Nats Queue name"`
 	}
 	Redis struct {
-		URI       string   `env:"REDIS_URI" env-description:"Redis URI"`
-		LockTTL   duration `env:"LOCK_TTL" env-description:"Time, that cache skips querying SQL backend on the same key min 1s"`
-		MaxIdle   int      `env:"REDIS_MAXIDLE" env-description:"Redis Pool.Maxidle"`
-		MaxActive int      `env:"REDIS_MAXACTIVE" env-description:"Redis Pool.MaxActive"`
+		URI        string   `env:"REDIS_URI" env-description:"Redis URI"`
+		LockTTL    duration `env:"LOCK_TTL" env-description:"Time, that cache skips querying SQL backend on the same key min 1s"`
+		MaxIdle    int      `env:"REDIS_MAXIDLE" env-description:"Redis Pool.Maxidle"`
+		MaxActive  int      `env:"REDIS_MAXACTIVE" env-description:"Redis Pool.MaxActive"`
+		TTLAttr    string   `env:"TTL_ATTR" env-description:"wich reply attr will be used as Redis.TTL i.e. '_TTL'"`
+		TTLDefault duration `env:"TTL_DEFAULT" env-description:"default TTL (when '_TTL' not set)"`
 	}
 }
 

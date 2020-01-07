@@ -3,70 +3,88 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/nats-io/nats.go"
 	"golang.org/x/time/rate"
 )
 
-type workerType = func(c *Config, rc *Cache, workerID int, donechan <-chan struct{}) error
+type workerType = func(ctx context.Context, c *Config, rc *Cache, workerID int) error
 
-func worker(c *Config, rc *Cache, workerID int, doneChan <-chan struct{}) (err error) {
+func worker(ctx context.Context, c *Config, rc *Cache, workerID int) (err error) {
 	var nc *nats.Conn
 	var db *sql.DB
-	var qs map[string]*query
+	var qs map[string]*Prepared
 
 	if nc, err = nats.Connect(c.Nats.URI); err != nil {
 		return
 	}
 	defer nc.Close()
 
-	if db, qs, err = c.prepareSQL(); err != nil {
+	if db, qs, err = prepareSQL(c); err != nil {
 		return
 	}
 	defer db.Close()
+
 	subject := c.Server.ServiceName + ".req.*" //
+	ch := make(chan *nats.Msg, 64)
+	sub, err := nc.ChanSubscribe(subject, ch)
+	defer sub.Unsubscribe()
+	var msg *nats.Msg
+
 	for {
+		select {
+		case msg = <-ch:
+		case <-ctx.Done():
+			return
+		}
 
-	}
+		topic := msg.Subject[len(subject)-1:]
+		query := qs[topic]
+		// Not known topic
+		if query == nil {
+			continue
+		}
+		attrs := make(map[string]string)
+		if err == json.Unmarshal(msg.Data, &attrs) {
+			log.Printf("Wrong encoded message on %v `%v`", msg.Subject, string(msg.Data))
+			continue
+		}
 
-	return nil
-}
+		if query.cacheable == false {
+			if err = query.CUD(ctx, attrs); err != nil {
+				return
+			}
+			continue
+		}
+		// cacheable Auth
+		var data []byte
+		data, err = rc.GetCache(msg.Reply, func(key string) (ttl int, data []byte, err error) {
+			var rattrs map[string]string
+			if rattrs, err = query.R(ctx, attrs); err != nil {
+				return
+			}
 
-type query struct {
-	stmt      *sql.Stmt
-	arguments []string
-	cacheable bool
-}
+			if strTTL, ok := rattrs[c.Redis.TTLAttr]; ok {
+				dTTL, _ := time.ParseDuration(strTTL)
+				ttl = int(dTTL.Seconds())
+			} else {
+				ttl = int(c.Redis.TTLDefault.Seconds())
+			}
 
-// prepareSQL MAY NOT checks sql syntax
-func (c *Config) prepareSQL() (db *sql.DB, qs map[string]*query, err error) {
-	if db, err = sql.Open(c.SQL.Driver, c.SQL.URI); err != nil {
-		return
-	}
-	qs = make(map[string]*query)
-	for topic, q := range c.SQL.Query {
-		stmt, err := db.Prepare(q.Prepare)
+			data, err = json.Marshal(rattrs)
+			return
+		})
 		if err != nil {
-			db.Close()
-			return nil, nil, err
+			return
 		}
-		qs[topic] = &query{
-			stmt:      stmt,
-			cacheable: q.Cacheable,
-			arguments: append([]string{}, q.Arguments...),
+		if err = msg.Respond(data); err != nil {
+			return
 		}
 	}
-	return
-}
-
-// ExecArgs converts map into []string slice as described in Query.Arguments
-func (q *Query) ExecArgs(args map[string]string) (argsSlice []string) {
-	for _, attrName := range q.Arguments {
-		argsSlice = append(argsSlice, args[attrName])
-	}
-	return
 }
 
 func (c *Config) runWorkers(ctx context.Context, rc *Cache, w workerType) {
@@ -102,7 +120,7 @@ func (c *Config) runWorkers(ctx context.Context, rc *Cache, w workerType) {
 				exitChan <- struct{}{}
 			}()
 
-			if err = w(c, rc, workerid, ctx.Done()); err != nil {
+			if err = w(ctx, c, rc, workerid); err != nil {
 				log.Printf("Error [#%v] %v", workerid, err)
 			}
 		}(workerid)

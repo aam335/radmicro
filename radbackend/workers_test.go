@@ -32,14 +32,14 @@ func Test_runWorkers(t *testing.T) {
 
 	count := 0
 	m := sync.Mutex{}
-	w := func(c *Config, rc *Cache, workerID int, done <-chan struct{}) error {
+	w := func(ctx context.Context, c *Config, rc *Cache, workerID int) error {
 		m.Lock()
 		count++
 		m.Unlock()
-		<-done
+		<-ctx.Done()
 		return nil
 	}
-	ew := func(c *Config, rc *Cache, workerID int, done <-chan struct{}) error {
+	ew := func(ctx context.Context, c *Config, rc *Cache, workerID int) error {
 		m.Lock()
 		count++
 		m.Unlock()
@@ -89,7 +89,7 @@ func TestConfig_prepareSQL(t *testing.T) {
 				c.SQL.URI = sqlURI
 			}
 			c.SQL.Query = tt.Query
-			_, _, err := c.prepareSQL()
+			_, _, err := prepareSQL(c)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Config.prepareSQL() error = %v, wantErr %v", err, tt.wantErr)
 				//				return

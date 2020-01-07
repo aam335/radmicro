@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"io/ioutil"
 	"log"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -14,13 +15,6 @@ type sqlUser struct {
 	name      string
 	attrname  string
 	attrvalue string
-}
-
-var users = []sqlUser{
-	{name: "00:00:00:00:00:00", attrname: "Acct-Interim-Interval", attrvalue: "600"},
-	{name: "00:00:00:00:00:00", attrname: "Framed-IP-Address", attrvalue: "192.168.2.100"},
-	{name: "00:00:00:00:00:00", attrname: "Framed-IP-Netmask", attrvalue: "255.255.255.0"},
-	{name: "00:00:00:00:00:00", attrname: "Session-Timeout", attrvalue: "600"},
 }
 
 func runNatsInstance() (*server.Server, string) {
@@ -61,15 +55,40 @@ func newDb(shared string) (db *sql.DB) {
 	if err != nil {
 		log.Fatalf("%q: %s\n", err, sqlStmt)
 	}
-	prep, err := db.Prepare("insert into users(name,attrname,attrvalue) values (:1,:2,:3)")
+
+	return
+}
+
+func dumpDB(db *sql.DB, tablename string) {
+	rows, err := db.Query("select * from " + tablename)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, q := range users {
-		if _, err = prep.Exec(q.name, q.attrname, q.attrvalue); err != nil {
+	defer rows.Close()
+	cols, err := rows.Columns()
+	if err != nil {
+		log.Fatal(err)
+	}
+	var strs = make([]sql.NullString, len(cols))
+	var ptrs = make([]interface{}, len(cols))
+	for i := range strs {
+		ptrs[i] = &strs[i]
+	}
+	log.Println(strings.Join(cols, ";"))
+	for rows.Next() {
+		if err := rows.Scan(ptrs...); err != nil {
 			log.Fatal(err)
 		}
+		val := ""
+		for _, v := range strs {
+			if v.Valid {
+				val += v.String
+			} else {
+				val += "NULL"
+			}
+			val += ";"
+		}
+		log.Println(val)
 	}
 
-	return
 }
