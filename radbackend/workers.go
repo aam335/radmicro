@@ -26,7 +26,11 @@ func worker(c *Config, rc *Cache, workerID int, doneChan <-chan struct{}) (err e
 		return
 	}
 	defer db.Close()
-	_ = qs
+	subject := c.Server.ServiceName + ".req.*" //
+	for {
+
+	}
+
 	return nil
 }
 
