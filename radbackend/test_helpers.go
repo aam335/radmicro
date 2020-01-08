@@ -59,8 +59,8 @@ func newDb(shared string) (db *sql.DB) {
 	return
 }
 
-func dumpDB(db *sql.DB, tablename string) {
-	rows, err := db.Query("select * from " + tablename)
+func dumpSQL(db *sql.DB, sqlQuery string) []string {
+	rows, err := db.Query(sqlQuery)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func dumpDB(db *sql.DB, tablename string) {
 	for i := range strs {
 		ptrs[i] = &strs[i]
 	}
-	log.Println(strings.Join(cols, ";"))
+	ret := []string{strings.Join(cols, ";")}
 	for rows.Next() {
 		if err := rows.Scan(ptrs...); err != nil {
 			log.Fatal(err)
@@ -88,7 +88,8 @@ func dumpDB(db *sql.DB, tablename string) {
 			}
 			val += ";"
 		}
-		log.Println(val)
+		// log.Println(val)
+		ret = append(ret, val)
 	}
-
+	return ret
 }

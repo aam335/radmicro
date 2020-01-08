@@ -18,6 +18,7 @@ func worker(ctx context.Context, c *Config, rc *Cache, workerID int) (err error)
 	var nc *nats.Conn
 	var db *sql.DB
 	var qs map[string]*Prepared
+	var sub *nats.Subscription
 
 	if nc, err = nats.Connect(c.Nats.URI); err != nil {
 		return
@@ -30,37 +31,35 @@ func worker(ctx context.Context, c *Config, rc *Cache, workerID int) (err error)
 	defer db.Close()
 
 	subject := c.Server.ServiceName + ".req.*" //
-	ch := make(chan *nats.Msg, 64)
-	sub, err := nc.ChanSubscribe(subject, ch)
+	if sub, err = nc.QueueSubscribeSync(subject, c.Nats.QueueName); err != nil {
+		return
+	}
 	defer sub.Unsubscribe()
 	var msg *nats.Msg
 
 	for {
-		select {
-		case msg = <-ch:
-		case <-ctx.Done():
+		if msg, err = sub.NextMsgWithContext(ctx); err != nil {
 			return
 		}
-
 		topic := msg.Subject[len(subject)-1:]
 		query := qs[topic]
 		// Not known topic
 		if query == nil {
 			continue
 		}
-		attrs := make(map[string]string)
-		if err == json.Unmarshal(msg.Data, &attrs) {
-			log.Printf("Wrong encoded message on %v `%v`", msg.Subject, string(msg.Data))
+		var attrs map[string]string
+		if err = json.Unmarshal(msg.Data, &attrs); err != nil {
+			log.Printf("Wrong encoded message on %v `%v`:%v", msg.Subject, string(msg.Data), err)
 			continue
 		}
-
+		// insert/update/delete
 		if query.cacheable == false {
 			if err = query.CUD(ctx, attrs); err != nil {
 				return
 			}
 			continue
 		}
-		// cacheable Auth
+		// select = cacheable Auth
 		var data []byte
 		data, err = rc.GetCache(msg.Reply, func(key string) (ttl int, data []byte, err error) {
 			var rattrs map[string]string
@@ -104,6 +103,9 @@ func (c *Config) runWorkers(ctx context.Context, rc *Cache, w workerType) {
 		if totalConn >= c.Server.MaxConnections {
 			select {
 			case <-exitChan:
+				if ctx.Err() != nil {
+					return // select may run this first on cancelled context
+				}
 			case <-ctx.Done():
 				return
 			}
