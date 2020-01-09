@@ -7,7 +7,7 @@ import (
 )
 
 func TestPrepared_CUD(t *testing.T) {
-	db := newDb("")
+	db, _ := newDb("CUD")
 
 	type fields struct {
 		query     string
@@ -56,7 +56,7 @@ func TestPrepared_CUD(t *testing.T) {
 }
 
 func TestPrepared_R(t *testing.T) {
-	db := newDb("")
+	db, _ := newDb("R")
 	type fields struct {
 		query     string
 		arguments []string

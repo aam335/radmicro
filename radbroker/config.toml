@@ -1,0 +1,34 @@
+[Server]
+  BindTo = "0.0.0.0:1812"
+  ReplicateReplies = false
+  Secret = "TopSecret"
+  ClientsSecrets = ["10.0.0.1:Secret1", "10.0.0.2:Secret2"]
+  ServiceName = "inet"
+  NatsURI=""
+  MaxAuthDuration = "5s" # Time to wait reply from backend
+
+[RateLimit]
+  MaxPendingReq = 0
+  RequestPerSecond = 0
+  Burst = 0
+
+### key(s) concatenates into one string value for identify queryes 
+[[Key]]
+  Name = "NAS-IP-Address" # whole attribute value
+[[Key]]
+  Name = "User-Name" # whole attribute value
+[[Key]]
+  Name="NAS-Port-Id" # regexp https://github.com/google/re2/wiki/Syntax
+  Regexp='(?m)vlan-id\s+(\w+):(\w+)'
+  Fields=[1,2]
+
+### Filtered attributes for pass to backend
+[Filter]
+# user auth
+  Auth = ["User-Name", "Service-Type", "NAS-Port-Id", "Calling-Station-Id", "NAS-IP-Address"]
+# accounting  
+  On = ["NAS-IP-Address"]
+  Off = ["NAS-IP-Address"]
+  Start = ["User-Name", "Acct-Session-Id", "NAS-Port-Id", "NAS-IP-Address", "Calling-Station-Id", "Framed-IP-Address", "Forward-Policy", "HTTP-Redirect-Profile-Name", "DHCP-Vendor-Class-ID", "DHCP-Option", "Class"]
+  InterimUpdate = ["User-Name", "Acct-Session-Id", "Framed-IP-Address", "NAS-Port-Id", "Acct-Session-Time", "Acct-Input-Octets", "Acct-Output-Octets", "Acct-Input-Gigawords", "Acct-Output-Gigawords", "Session-Error-Msg", "Class"]
+  Stop = ["User-Name", "Acct-Session-Id", "Framed-IP-Address", "NAS-Port-Id", "Acct-Session-Time", "Acct-Input-Octets", "Acct-Output-Octets", "Acct-Input-Gigawords", "Acct-Output-Gigawords", "Session-Error-Msg", "Class"]
