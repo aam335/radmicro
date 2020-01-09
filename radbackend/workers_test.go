@@ -60,10 +60,9 @@ func Test_runWorkers(t *testing.T) {
 	assert.False(t, count <= 10 || count >= (10+1000/50), "Rate error count=", count)
 }
 
-func TestConfig_prepareSQL(t *testing.T) {
-	sqlURI := "file::memory:?cache=shared"
+func TestPrepareSQL(t *testing.T) {
 	sqlDriver := "sqlite3"
-	db := newDb("?cache=shared")
+	db, sqlURI := newDb("prepareSQL")
 	defer db.Close()
 
 	tests := []struct {
@@ -90,14 +89,9 @@ func TestConfig_prepareSQL(t *testing.T) {
 			_, _, err := prepareSQL(c)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Config.prepareSQL() error = %v, wantErr %v", err, tt.wantErr)
-				//				return
 			}
 		})
 	}
-}
-
-func dumper(natsURI, subj string) {
-
 }
 
 func TestWorker(t *testing.T) {
@@ -106,14 +100,14 @@ func TestWorker(t *testing.T) {
 	miniRedis, err := miniredis.Run()
 	require.NoError(t, err)
 	defer miniRedis.Close()
-	db := newDb("?cache=shared")
+	db, sqlURI := newDb("worker")
 	defer db.Close()
-	natsURI = nats.DefaultURL
+	// natsURI = nats.DefaultURL
 	c := Config{}
 	c.Nats.URI = natsURI
 	c.Nats.QueueName = "queue"
 	c.SQL.Driver = "sqlite3"
-	c.SQL.URI = "file::memory:?cache=shared"
+	c.SQL.URI = sqlURI
 	c.Server.ServiceName = "inet"
 	c.Redis.URI = miniRedis.Addr()
 	c.Redis.TTLDefault.Duration = time.Minute
