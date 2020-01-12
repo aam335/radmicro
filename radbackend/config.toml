@@ -4,11 +4,11 @@ MaxConnections = 5
 RestartInterval = '1s'
 
 [Nats]
-URI = ''
+URI = 'nats://nats:4222'
 QueueName = 'inet'
 
 [Redis]
-URI = ''
+URI = 'redis://redis:6479'
 MaxIdle = 30
 MaxActive = 40
 LockTTL = '5s'
@@ -19,19 +19,19 @@ TTLDefault = '5m'
 Driver = 'sqlite3'
 URI = 'file:./base.sq3'
 [Sql.Query.Auth]
-Prepare = 'select attrname,attrval from users where name=:1'
+Prepare = 'select attrname,attrvalue from users where username=:1'
 Arguments = ['User-Name']
 Cacheable = true
 
 [Sql.Query.Start]
-Prepare = 'insert into acc (name,sessionid,start) values (:1,:2,CURRENT_TIMESTAMP)'
+Prepare = 'insert into acc (username,sessionid,accstart) values (:1,:2,CURRENT_TIMESTAMP)'
 Arguments = [
     'User-Name',
     'Acct-Session-Id',
 ]
 
 [Sql.Query.InterimUpdate]
-Prepare = 'update acc set (inb=:1,outb:2) where sessionid=:3'
+Prepare = 'update acc set inb=:1,outb=:2 where sessionid=:3'
 Arguments = [
     'Acct-Input-Octets',
     'Acct-Output-Octets',
@@ -39,7 +39,7 @@ Arguments = [
 ]
 
 [Sql.Query.Stop]
-Prepare = 'update acc set (inb=:1,outb=:2,stop=CURRENT_TIMESTAMP) where sessionid=:3'
+Prepare = 'update acc set inb=:1,outb=:2,accstop=CURRENT_TIMESTAMP where sessionid=:3'
 Arguments = [
     'Acct-Input-Octets',
     'Acct-Output-Octets',

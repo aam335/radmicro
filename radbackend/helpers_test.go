@@ -8,7 +8,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	server "github.com/nats-io/nats-server/server"
+	server "github.com/nats-io/nats-server/v2/server"
 )
 
 func runNatsInstance() (*server.Server, string) {

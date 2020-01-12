@@ -2,9 +2,9 @@
   BindTo = "0.0.0.0:1812"
   ReplicateReplies = false
   Secret = "TopSecret"
-  ClientsSecrets = ["10.0.0.1:Secret1", "10.0.0.2:Secret2"]
+  ClientsSecrets = ["10.0.0.1/32:Secret1", "10.0.0.2/32:Secret2"]
   ServiceName = "inet"
-  NatsURI=""
+  NatsURI="nats://nats:4222"
   MaxAuthDuration = "5s" # Time to wait reply from backend
 
 [RateLimit]

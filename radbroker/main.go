@@ -7,7 +7,6 @@ import (
 	"github.com/aam335/go-radius/vendor"
 )
 
-
 func main() {
 	c, err := ConfigLoad()
 	if err != nil {
@@ -36,5 +35,5 @@ func main() {
 
 	handler := newHandler(userAuthFilter, accFilters, ps, c.Server.MaxAuthDuration.Duration)
 	server := c.NewServer(radius.Builtin, radius.HandlerFunc(handler))
-	_ = server
+	log.Printf("exit status: %v", server.ListenAndServe())
 }
