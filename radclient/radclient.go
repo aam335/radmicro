@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "flag"
@@ -81,7 +82,7 @@ func main() {
 		if len(av) != 2 {
 			log.Fatalf("'%v' not in attr:val format", strAttr)
 		}
-		if err := packet.Add(av[0], av[1]); err != nil {
+		if err := packet.Add(av[0], strings.Trim(av[1], "\n")); err != nil {
 			log.Fatalf("'%v' error:", strAttr)
 		}
 	}

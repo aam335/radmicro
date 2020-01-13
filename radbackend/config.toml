@@ -8,7 +8,7 @@ URI = 'nats://nats:4222'
 QueueName = 'inet'
 
 [Redis]
-URI = 'redis://redis:6479'
+URI = 'redis:6379'
 MaxIdle = 30
 MaxActive = 40
 LockTTL = '5s'

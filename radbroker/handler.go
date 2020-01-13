@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/aam335/go-radius"
-	"github.com/micro/go-micro/util/log"
 )
 
 func newHandler(userAuthFilter *radius.AttrFilter, accFilters [MaxKnownValue + 1]*radius.AttrFilter, ps PubSub, maxAuthTime time.Duration) radius.HandlerFunc {
@@ -20,8 +20,8 @@ func newHandler(userAuthFilter *radius.AttrFilter, accFilters [MaxKnownValue + 1
 			if err != nil {
 				// deadline exceeded, DHCP client will stops waiting THIS reply and
 				// resends DHCP query. No reply to timeouted query.
-				if ctx.Err() != nil {
-					log.Info("Timeout:", key)
+				if err == context.DeadlineExceeded {
+					log.Infof("Timeout: %v", key)
 				} else {
 					log.Error(err)
 				}

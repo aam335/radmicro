@@ -7,19 +7,19 @@ services:
     ports:
       - "11812:1812/udp"
     depends_on: 
-        - backend
-        - redis
-        - nats
+      - backend
+      - redis
+      - nats
   backend:
     build:
       context: ./radbackend
       dockerfile: Dockerfile
     ports:
-        - "18080:8080"
+      - "18080:8080"
     depends_on: 
-        - redis
-        - nats
-      redis:
+      - redis
+      - nats
+  redis:
     image: redis:latest
     ports:
       - "16379:6379" # map port to none standard port, to avoid conflicts with locally installed mongodb. 
@@ -27,5 +27,4 @@ services:
     image: nats:latest
     ports:
       - "14222:4222" # map port to none standard port, to avoid conflicts with locally installed mongodb. 
-    
-    
+  

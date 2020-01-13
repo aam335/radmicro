@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/aam335/go-radius"
 	"github.com/aam335/go-radius/vendor"
@@ -34,6 +34,7 @@ func main() {
 	}
 
 	handler := newHandler(userAuthFilter, accFilters, ps, c.Server.MaxAuthDuration.Duration)
+	log.Infof("Starting server on nats:%v/%v", c.Server.NatsURI, c.Server.ServiceName)
 	server := c.NewServer(radius.Builtin, radius.HandlerFunc(handler))
 	log.Printf("exit status: %v", server.ListenAndServe())
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"reflect"
 	"sync"
 	"testing"
