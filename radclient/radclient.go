@@ -20,18 +20,6 @@ import (
 	radius "github.com/aam335/go-radius"
 )
 
-// RadField ...
-type RadField struct {
-	Code  code
-	Attrs map[string]string
-}
-
-// RadFields describes packet text representation
-type RadFields struct {
-	Send, Recv RadField
-	WantErr    bool
-}
-
 // ParceUDPAddr host || host:port to net.UDPAddr
 func ParceUDPAddr(s string) (*net.UDPAddr, error) {
 	dst := &net.UDPAddr{}

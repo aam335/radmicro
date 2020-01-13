@@ -13,6 +13,18 @@ type code struct {
 	// Code byte
 }
 
+// RadField ...
+type RadField struct {
+	Code  code
+	Attrs map[string]string
+}
+
+// RadFields describes packet text representation
+type RadFields struct {
+	Send, Recv RadField
+	WantErr    bool
+}
+
 var codes = map[string]radius.Code{
 	"AccessRequest": radius.CodeAccessRequest,
 	"AccessAccept":  radius.CodeAccessAccept,
@@ -36,7 +48,7 @@ var codes = map[string]radius.Code{
 }
 
 // UnmarshalText ...
-func (c code) UnmarshalText(s string) error {
+func (c *code) UnmarshalText(s string) error {
 	if _, ok := codes[s]; !ok {
 		return fmt.Errorf("Wrong Code value '%v', assepted:%v", s, reflect.ValueOf(codes).MapKeys())
 	}
