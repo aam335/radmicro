@@ -7,9 +7,10 @@ import (
 	radius "github.com/aam335/go-radius"
 )
 
-// Code represents code of radius packet
-type Code struct {
+// code represents code of radius packet
+type code struct {
 	radius.Code
+	// Code byte
 }
 
 var codes = map[string]radius.Code{
@@ -34,8 +35,8 @@ var codes = map[string]radius.Code{
 	"CoANAK":     radius.CodeCoANAK,
 }
 
-// SetValue ...
-func (c Code) SetValue(s string) error {
+// UnmarshalText ...
+func (c code) UnmarshalText(s string) error {
 	if _, ok := codes[s]; !ok {
 		return fmt.Errorf("Wrong Code value '%v', assepted:%v", s, reflect.ValueOf(codes).MapKeys())
 	}

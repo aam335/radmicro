@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -12,23 +14,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/ilyakaznacheev/cleanenv"
 
 	radius "github.com/aam335/go-radius"
 )
 
+// RadField ...
+type RadField struct {
+	Code  code
+	Attrs map[string]string
+}
+
 // RadFields describes packet text representation
 type RadFields struct {
-	Send struct {
-		Code  Code
-		Attrs map[string]string
-	}
-	Recv struct {
-		Code  Code
-		pType uint32
-		Attrs map[string]string
-	}
-	WantErr bool
+	Send, Recv RadField
+	WantErr    bool
 }
 
 // ParceUDPAddr host || host:port to net.UDPAddr
@@ -52,6 +53,14 @@ func ParceUDPAddr(s string) (*net.UDPAddr, error) {
 
 func usage(s string, err error) {
 	flag.Usage()
+	var buff bytes.Buffer
+	e := toml.NewEncoder(&buff)
+	pkt := RadFields{Send: RadField{Attrs: map[string]string{"attr1": "val1", "attr2": "val2"}}}
+
+	if err := e.Encode(&pkt); err == nil {
+		fmt.Print(string(buff.Bytes()))
+		os.Exit(0)
+	}
 	log.Fatal(s, ":", err)
 }
 
