@@ -12,10 +12,24 @@ import (
 	"strings"
 	"time"
 
-	_ "flag"
+	"github.com/ilyakaznacheev/cleanenv"
 
 	radius "github.com/aam335/go-radius"
 )
+
+// RadFields describes packet text representation
+type RadFields struct {
+	Send struct {
+		Code  Code
+		Attrs map[string]string
+	}
+	Recv struct {
+		Code  Code
+		pType uint32
+		Attrs map[string]string
+	}
+	WantErr bool
+}
 
 // ParceUDPAddr host || host:port to net.UDPAddr
 func ParceUDPAddr(s string) (*net.UDPAddr, error) {
@@ -49,10 +63,17 @@ func main() {
 	var retries = flag.Int("r", 1, "retries")
 	var secret = flag.String("secret", "", "Radius secret")
 
+	var packetFile = flag.String("p", "", "packet file: packet.[json|toml|yaml]")
+
 	flag.Parse()
 
 	if *secret == "" {
 		usage("secret", errors.New("must be set"))
+	}
+
+	var rf RadFields
+	if err := cleanenv.ReadConfig(*packetFile, &rf); err != nil {
+		usage(*packetFile, err)
 	}
 
 	tmo, err := time.ParseDuration(*timeoutStr)

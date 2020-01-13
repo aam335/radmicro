@@ -1,0 +1,6 @@
+[Send]
+Code="AccessRequest"
+[Send.Attrs]
+User-Name="ut"
+[Recv]
+Code="AccessReject"
