@@ -1,21 +1,23 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
 	radius "github.com/aam335/go-radius"
 )
 
-// code represents code of radius packet
-type code struct {
+// radCode represents radCode of radius packet
+type radCode struct {
 	radius.Code
-	// Code byte
 }
+
+// radius.Code
 
 // RadField ...
 type RadField struct {
-	Code  code
+	Code  radCode
 	Attrs map[string]string
 }
 
@@ -26,11 +28,9 @@ type RadFields struct {
 }
 
 var codes = map[string]radius.Code{
-	"AccessRequest": radius.CodeAccessRequest,
-	"AccessAccept":  radius.CodeAccessAccept,
-	"AccessReject":  radius.CodeAccessReject,
-
-	"AccountingRequest":  radius.CodeAccountingRequest,
+	"AccessRequest":      radius.CodeAccessRequest,
+	"AccessAccept":       radius.CodeAccessAccept,
+	"AccessReject":       radius.CodeAccessReject,
 	"AccountingResponse": radius.CodeAccountingResponse,
 
 	"AccessChallenge": radius.CodeAccessChallenge,
@@ -45,13 +45,45 @@ var codes = map[string]radius.Code{
 	"CoARequest": radius.CodeCoARequest,
 	"CoAACK":     radius.CodeCoAACK,
 	"CoANAK":     radius.CodeCoANAK,
+	"Any":        0,
 }
 
 // UnmarshalText ...
-func (c *code) UnmarshalText(s string) error {
+func (c *radCode) UnmarshalText(text []byte) error {
+	return c.SetValue(string(text))
+}
+
+// SetValue ..
+func (c *radCode) SetValue(s string) error {
 	if _, ok := codes[s]; !ok {
 		return fmt.Errorf("Wrong Code value '%v', assepted:%v", s, reflect.ValueOf(codes).MapKeys())
 	}
 	c.Code = codes[s]
 	return nil
+}
+
+// MarshalText ...
+func (c *radCode) MarshalText() ([]byte, error) {
+	for k, v := range codes {
+		if v == c.Code {
+			return []byte(k), nil
+		}
+	}
+	return nil, fmt.Errorf("Wrong Code value '%v'", c)
+}
+
+func (c radCode) String() string {
+	bs, err := c.MarshalText()
+	if err != nil {
+		return err.Error()
+	}
+	return string(bs)
+}
+
+func (c radCode) UnmarshalJSON(text []byte) error {
+	return c.SetValue(string(text))
+}
+
+func (c radCode) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.String())
 }

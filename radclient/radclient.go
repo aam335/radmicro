@@ -1,20 +1,16 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/BurntSushi/toml"
 	"github.com/ilyakaznacheev/cleanenv"
 
 	radius "github.com/aam335/go-radius"
@@ -41,15 +37,14 @@ func ParceUDPAddr(s string) (*net.UDPAddr, error) {
 
 func usage(s string, err error) {
 	flag.Usage()
-	var buff bytes.Buffer
-	e := toml.NewEncoder(&buff)
-	pkt := RadFields{Send: RadField{Attrs: map[string]string{"attr1": "val1", "attr2": "val2"}}}
-
-	if err := e.Encode(&pkt); err == nil {
-		fmt.Print(string(buff.Bytes()))
-		os.Exit(0)
-	}
-	log.Fatal(s, ":", err)
+	// var buff bytes.Buffer
+	// e := toml.NewEncoder(&buff)
+	// pkt := RadFields{Send: RadField{Code: radCode{radius.CodeAccessRequest}, Attrs: map[string]string{"attr1": "val1", "attr2": "val2"}}}
+	// if err = e.Encode(&pkt); err == nil {
+	// 	fmt.Print(string(buff.Bytes()))
+	// 	os.Exit(0)
+	// }
+	log.Fatalf("Error: %v %v", s, err)
 }
 
 func main() {
@@ -59,6 +54,10 @@ func main() {
 	var timeoutStr = flag.String("t", "1s", "timeout")
 	var retries = flag.Int("r", 1, "retries")
 	var secret = flag.String("secret", "", "Radius secret")
+
+	var verboseReply = flag.Bool("v", false, "Verbose radius reply")
+	var verboseJSON = flag.Bool("vj", false, "Verbose radius reply vin json")
+	var qt = flag.Bool("qt", false, "Request execution time")
 
 	var packetFile = flag.String("p", "", "packet file: packet.[json|toml|yaml]")
 
@@ -87,21 +86,12 @@ func main() {
 		client.LocalAddr = src
 	}
 
-	packet := radius.New(radius.CodeAccessRequest, []byte(*secret))
+	packet := radius.New(rf.Send.Code.Code, []byte(*secret))
 	// packet.Add("Calling-Station-Id", "NAS-Fake")
-	reader := bufio.NewReader(os.Stdin)
-	rx := regexp.MustCompile("\\s*:\\s*")
-	for {
-		strAttr, err := reader.ReadString('\n')
-		if err != nil {
-			break
-		}
-		av := rx.Split(strAttr, 2)
-		if len(av) != 2 {
-			log.Fatalf("'%v' not in attr:val format", strAttr)
-		}
-		if err := packet.Add(av[0], strings.Trim(av[1], "\n")); err != nil {
-			log.Fatalf("'%v' error:", strAttr)
+	//	rx := regexp.MustCompile("\\s*:\\s*")
+	for name, value := range rf.Send.Attrs {
+		if err := packet.Add(name, value); err != nil {
+			log.Fatalf("'%v':'%v' error:%v", name, value, err)
 		}
 	}
 
@@ -109,8 +99,9 @@ func main() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-
+	startTime := time.Now()
 	reply, err := client.Exchange(packet, dst, nil)
+	dt := time.Now().Sub(startTime)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -120,10 +111,29 @@ func main() {
 		os.Exit(0)
 	}
 
-	switch reply.Code {
-	case radius.CodeAccessAccept:
-		log.Println("Accept")
-	case radius.CodeAccessReject:
-		log.Println("Reject")
+	if *verboseReply {
+		fmt.Println("Auth-Type:", radCode{reply.Code})
+		for _, attr := range reply.Attributes {
+			if attrName, ok := reply.Dictionary.NameVID(attr.Vendor, attr.Type); ok {
+				fmt.Println(attrName, ":", attr.Value)
+			} else {
+				log.Print("Err:", attr)
+			}
+		}
+	} else if *verboseJSON {
+		of := RadField{Code: radCode{reply.Code}}
+		of.Attrs = make(map[string]string)
+		for _, attr := range reply.Attributes {
+			if attrName, ok := reply.Dictionary.NameVID(attr.Vendor, attr.Type); ok {
+				of.Attrs[attrName] = fmt.Sprint(attr.Value)
+			} else {
+				log.Print("Err:", attr)
+			}
+		}
+		d, _ := json.Marshal(of)
+		fmt.Println(string(d))
+	}
+	if *qt {
+		log.Print("Query time:", dt)
 	}
 }

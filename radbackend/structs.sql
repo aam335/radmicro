@@ -17,6 +17,7 @@ create table acc(
 
 insert into users(username,attrname,attrvalue)
 values
+    ("00:00:00:00:00:00", "Auth-Type", "Accept"),
 	( "00:00:00:00:00:00",  "Acct-Interim-Interval", "600"),
 	( "00:00:00:00:00:00",  "Framed-IP-Address", "192.168.99.100"),
 	( "00:00:00:00:00:00",  "Framed-IP-Netmask", "255.255.255.0"),
