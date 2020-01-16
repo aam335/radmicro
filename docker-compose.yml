@@ -22,9 +22,9 @@ services:
   redis:
     image: redis:latest
     ports:
-      - "16379:6379" # map port to none standard port, to avoid conflicts with locally installed mongodb. 
+      - "16379:6379" # map port to none standard port, to avoid conflicts  
   nats:
     image: nats:latest
     ports:
-      - "14222:4222" # map port to none standard port, to avoid conflicts with locally installed mongodb. 
+      - "14222:4222" # map port to none standard port, to avoid conflicts 
   
