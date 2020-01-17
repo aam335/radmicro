@@ -32,6 +32,9 @@ func newHandler(userAuthFilter *radius.AttrFilter, accFilters [MaxKnownValue + 1
 			}
 			delete(resp, "Auth-Type")
 			replyAttrs, err := p.Dictionary.StrsToAttrs(resp)
+			if err != nil {
+				log.Printf("%v", err)
+			}
 			if accept {
 				w.AccessAccept(replyAttrs...)
 			} else {
